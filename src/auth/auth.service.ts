@@ -7,15 +7,15 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  // Inject JwtService di sini 👇
   constructor(
     private prisma: PrismaService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
   ) {}
 
   async register(dto: RegisterDto) {
+
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: dto.email }, 
     });
 
     if (existingUser) {
@@ -30,38 +30,38 @@ export class AuthService {
         name: dto.name,
         email: dto.email,
         password: hashedPassword,
+        gender: dto.gender, 
+        age: dto.age,      
+        bio: dto.bio,       
       },
     });
 
     return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
       message: 'Register berhasil, silakan login!',
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
     };
   }
 
-  // --- INI LOGIKA LOGIN BARU ---
+
   async login(dto: LoginDto) {
-    // 1. Cari user berdasarkan email
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
 
     if (!user) {
-      throw new UnauthorizedException('Email atau password salah!');
+      throw new UnauthorizedException('Email atau password salah');
     }
 
-    // 2. Cek apakah password cocok? (Pakai bcrypt compare)
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Email atau password salah!');
+    const isMatch = await bcrypt.compare(dto.password, user.password);
+    if (!isMatch) {
+      throw new UnauthorizedException('Email atau password salah');
     }
 
-    // 3. Kalau cocok, cetak TOKEN (JWT)
     const payload = { sub: user.id, email: user.email };
-    
     return {
       access_token: await this.jwtService.signAsync(payload),
       message: 'Login berhasil!',
